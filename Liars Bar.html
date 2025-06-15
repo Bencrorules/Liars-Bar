@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russian Roulette Demo</title>
+    <style>
+        /* === BASIC LAYOUT & RESET === */
+        html,body{margin:0;padding:0;height:100%;font-family:system-ui,Arial,sans-serif;background:#222;color:#fff;overflow:hidden;display:flex;justify-content:center;align-items:center}
+        h1{margin:0 0 1rem;font-size:2rem;text-align:center}
+        label{display:flex;gap:.5rem;align-items:center;font-size:1.1rem}
+        input{width:4rem;padding:.25rem;font-size:1.1rem;border-radius:4px;border:none}
+        button{padding:.5rem 1.25rem;font-size:1.1rem;border:none;border-radius:4px;background:#f1ad02;color:#002569;cursor:pointer}
+        button:hover{filter:brightness(1.1)}
+        /* === VOIDS === */
+        #setup{position:absolute;inset:0;background:#111;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:1rem;z-index:5}
+        #playArea{display:none;flex-direction:column;align-items:center;gap:1rem}
+        #gun{width:220px;height:auto;transition:filter .25s ease-out;position:relative}
+        #result{min-height:2rem;font-size:1.5rem}
+        /* === SMOKE EFFECT === */
+        .smoke::after{content:'';position:absolute;top:-60px;left:50%;width:180px;height:180px;background:url('https://i.imgur.com/bhLhVze.png') center/contain no-repeat;transform:translateX(-50%);pointer-events:none;animation:smokeUp 1.6s forwards}
+        @keyframes smokeUp{0%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,-60px)}}
+    </style>
+</head>
+<body>
+    <!-- === SETUP SCREEN === -->
+    <div id="setup">
+        <h1>Russian Roulette</h1>
+        <label>Bullets: <input id="bullets" type="number" min="0" value="1"></label>
+        <label>Chambers: <input id="chambers" type="number" min="1" value="6"></label>
+        <button id="startBtn">Start</button>
+    </div>
+
+    <!-- === GAME PLAY AREA === -->
+    <div id="playArea">
+        <img id="gun" src="" alt="Gun pointing up">
+        <div id="result">Double‑tap anywhere to fire</div>
+    </div>
+
+    <!-- === AUDIO === -->
+    <audio id="audioBlank" src="https://assets.mixkit.co/sfx/download/mixkit-click-error-1110.wav" preload="auto"></audio>
+    <audio id="audioFire"  src="https://assets.mixkit.co/sfx/download/mixkit-explosion-1614.wav" preload="auto"></audio>
+
+<script>
+/* =========================================================
+   Simple Russian‑Roulette Logic – v0.1
+   ========================================================= */
+const guns=[
+  // Free placeholder images – swap these for your own royalty‑free revolver photos
+  'https://images.unsplash.com/photo-1519638399535-1b036603ac77?auto=format&fit=crop&w=500&h=500',
+  'https://images.unsplash.com/photo-1603676292143-7396c33dba0c?auto=format&fit=crop&w=500&h=500'
+];
+
+let chambers=[],currentIndex=0;
+const setup=document.getElementById('setup');
+const playArea=document.getElementById('playArea');
+const gun=document.getElementById('gun');
+const result=document.getElementById('result');
+const audioBlank=document.getElementById('audioBlank');
+const audioFire=document.getElementById('audioFire');
+
+// === Initialise game ===
+function initGame(){
+  const numBullets=parseInt(document.getElementById('bullets').value,10)||1;
+  const numChambers=parseInt(document.getElementById('chambers').value,10)||6;
+  if(numBullets>numChambers){alert('Bullets cannot exceed chambers!');return;}
+
+  // Create chamber array & randomly load bullets
+  chambers=Array(numChambers).fill(false);
+  let placed=0;
+  while(placed<numBullets){
+    const idx=Math.floor(Math.random()*numChambers);
+    if(!chambers[idx]){chambers[idx]=true;placed++;}
+  }
+  currentIndex=0;
+
+  // Random gun artwork
+  gun.src=guns[Math.floor(Math.random()*guns.length)];
+
+  // Switch screens
+  setup.style.display='none';
+  playArea.style.display='flex';
+  result.textContent='Double‑tap anywhere to fire';
+}
+
+document.getElementById('startBtn').addEventListener('click',initGame);
+
+// === Tap / Click detection (desktop & mobile) ===
+let lastTap=0;
+function tapHandler(){
+  const now=Date.now();
+  if(now-lastTap<350){ fireRound(); }
+  lastTap=now;
+}
+
+document.addEventListener('click',tapHandler);
+document.addEventListener('touchend',tapHandler);
+
+// === Fire current chamber ===
+function fireRound(){
+  if(!playArea.style.display||playArea.style.display==='none') return; // not started yet
+  if(currentIndex>=chambers.length){ result.textContent='💀 Out of chambers!'; return; }
+
+  const live=chambers[currentIndex];
+  if(live){
+    audioFire.currentTime=0; audioFire.play();
+    result.textContent='🔫 BANG!';
+    gun.classList.add('smoke');
+    // Stop game after fatal shot
+    document.removeEventListener('click',tapHandler);
+    document.removeEventListener('touchend',tapHandler);
+  }else{
+    audioBlank.currentTime=0; audioBlank.play();
+    result.textContent='☠️ Click…';
+    currentIndex++;
+  }
+}
+</script>
+</body>
+</html>
