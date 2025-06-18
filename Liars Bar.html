@@ -1,120 +1,329 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Russian Roulette Demo</title>
-    <style>
-        /* === BASIC LAYOUT & RESET === */
-        html,body{margin:0;padding:0;height:100%;font-family:system-ui,Arial,sans-serif;background:#222;color:#fff;overflow:hidden;display:flex;justify-content:center;align-items:center}
-        h1{margin:0 0 1rem;font-size:2rem;text-align:center}
-        label{display:flex;gap:.5rem;align-items:center;font-size:1.1rem}
-        input{width:4rem;padding:.25rem;font-size:1.1rem;border-radius:4px;border:none}
-        button{padding:.5rem 1.25rem;font-size:1.1rem;border:none;border-radius:4px;background:#f1ad02;color:#002569;cursor:pointer}
-        button:hover{filter:brightness(1.1)}
-        /* === VOIDS === */
-        #setup{position:absolute;inset:0;background:#111;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:1rem;z-index:5}
-        #playArea{display:none;flex-direction:column;align-items:center;gap:1rem}
-        #gun{width:220px;height:auto;transition:filter .25s ease-out;position:relative}
-        #result{min-height:2rem;font-size:1.5rem}
-        /* === SMOKE EFFECT === */
-        .smoke::after{content:'';position:absolute;top:-60px;left:50%;width:180px;height:180px;background:url('https://i.imgur.com/bhLhVze.png') center/contain no-repeat;transform:translateX(-50%);pointer-events:none;animation:smokeUp 1.6s forwards}
-        @keyframes smokeUp{0%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,-60px)}}
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
+<title>Liars Bar – Russian Roulette</title>
+
+<!-- Gothic-casino font -->
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&display=swap" rel="stylesheet">
+
+<style>
+/* ---------- THEME ---------- */
+:root{
+  --violet-900:#2d1839;
+  --violet-700:#46215c;
+  --violet-500:#5d2d79;
+  --violet-300:#8450a2;
+  --fg:#e8e0ff;
+}
+
+/* ---------- BASE ---------- */
+*{box-sizing:border-box;margin:0;padding:0;user-select:none}
+html,body{
+  height:100%;
+  background:#000;
+  color:#fff;
+  font:20px/1.4 "Cinzel",Arial,Helvetica,sans-serif;
+  overflow:hidden;
+}
+
+/* ---------- BUTTONS ---------- */
+button{
+  padding:.8rem 2rem;
+  font-size:1.25rem;
+  border:none;border-radius:6px;
+  background:var(--violet-700);
+  color:var(--fg);
+  cursor:pointer;
+  box-shadow:0 0 6px #000 inset,0 0 8px var(--violet-500);
+  transition:.15s;
+}
+button:hover{background:var(--violet-500);box-shadow:0 0 12px var(--violet-500)}
+button:active{transform:translateY(2px)}
+
+/* steppers */
+.step{width:2.6rem;height:2.6rem;font-size:1.6rem;line-height:1;padding:0}
+.value{min-width:2.6rem;text-align:center}
+
+/* ---------- PANELS ---------- */
+#setup,#playArea{
+  position:absolute;inset:0;
+  display:flex;flex-direction:column;
+  align-items:center;
+}
+#setup{
+  justify-content:space-between;          /* top vs bottom */
+  padding:2.5rem 2rem;
+  background:#000;
+  border:2px solid var(--violet-700);
+  border-radius:8px;
+  box-shadow:0 0 20px var(--violet-500);
+  z-index:5;
+}
+#setupTop{width:100%;display:flex;flex-direction:column;gap:2rem}
+
+/* title */
+h1{
+  font-size:3rem;
+  text-align:center;
+  letter-spacing:.06em;
+  text-shadow:0 0 10px var(--violet-500),0 0 24px var(--violet-500);
+}
+
+/* picker rows */
+.picker{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:1rem;
+  width:100%;
+}
+.picker span:first-child{flex:1;text-align:left}
+
+/* ---------- FIXED BAR ---------- */
+#settingsBtn{
+  position:absolute;top:1rem;right:1rem;
+  font-size:2rem;line-height:1;
+  background:none;border:none;color:#fff;
+  padding:0;margin:0;
+  display:none;                  /* shown after first game */
+  z-index:10;pointer-events:auto;
+  box-shadow: none;
+}
+#settingsBtn:hover{color:#fff}    /* no purple glow */
+
+#status{
+  position:absolute;top:1rem;left:50%;
+  transform:translateX(-50%);
+  font-size:1.5rem;z-index:7;
+}
+
+/* ---------- GAME CANVAS ---------- */
+#gunWrapper{position:relative;width:100%;height:100%;pointer-events:none}
+#gun{
+  position:absolute;top:50%;left:50%;
+  width:80vh;max-height:95vw;
+  transform:translate(-50%,-50%) rotate(-90deg);
+  transition:transform .15s ease-out;
+  -webkit-user-drag:none;z-index:2;
+}
+#gun.recoil{transform:translate(-53%,-55%) rotate(-92deg)}
+#smoke{position:absolute;width:30vmin;height:30vmin;display:none;pointer-events:none;z-index:7}
+
+/* ---------- FX ---------- */
+@keyframes shake{
+  0%,100%{transform:translate(0)}
+  20%{transform:translate(-6px,3px)}
+  40%{transform:translate(4px,-5px)}
+  60%{transform:translate(-3px,4px)}
+  80%{transform:translate(2px,-2px)}
+}
+.shake{animation:shake .3s both}
+#flash{position:fixed;inset:0;background:rgba(180,0,40,.4);pointer-events:none;opacity:0;transition:opacity .25s;z-index:6}
+
+#reloadBtn{position:absolute;bottom:2rem;left:50%;transform:translateX(-50%);display:none}
+</style>
 </head>
+
 <body>
-    <!-- === SETUP SCREEN === -->
-    <div id="setup">
-        <h1>Russian Roulette</h1>
-        <label>Bullets: <input id="bullets" type="number" min="0" value="1"></label>
-        <label>Chambers: <input id="chambers" type="number" min="1" value="6"></label>
-        <button id="startBtn">Start</button>
+  <!-- Flash & Gear -->
+  <div id="flash"></div>
+  <button id="settingsBtn" title="Settings">⚙️</button>
+  <div id="status"></div>
+
+  <!-- ---------- SETUP ---------- -->
+  <div id="setup">
+    <div id="setupTop">
+      <h1>Liars Bar</h1>
+
+      <div class="picker" id="pickBullets">
+        <span>Bullets</span>
+        <button class="step dec">−</button>
+        <span class="value" id="bulletsVal">1</span>
+        <button class="step inc">+</button>
+      </div>
+
+      <div class="picker" id="pickChambers">
+        <span>Chambers</span>
+        <button class="step dec">−</button>
+        <span class="value" id="chambersVal">6</span>
+        <button class="step inc">+</button>
+      </div>
     </div>
 
-    <!-- === GAME PLAY AREA === -->
-    <div id="playArea">
-        <img id="gun" src="" alt="Gun pointing up">
-        <div id="result">Double‑tap anywhere to fire</div>
-    </div>
+    <button id="startBtn">Begin the Game</button>
+  </div>
 
-    <!-- === AUDIO === -->
-    <audio id="audioBlank" src="https://assets.mixkit.co/sfx/download/mixkit-click-error-1110.wav" preload="auto"></audio>
-    <audio id="audioFire"  src="https://assets.mixkit.co/sfx/download/mixkit-explosion-1614.wav" preload="auto"></audio>
+  <!-- ---------- PLAY AREA ---------- -->
+  <div id="playArea">
+    <div id="gunWrapper">
+      <img id="gun" alt="Gun">
+      <canvas id="smoke" width="300" height="300"></canvas>
+    </div>
+    <button id="reloadBtn">Reload</button>
+  </div>
+
+  <!-- Audio -->
+  <audio id="audioBlank" src="https://raw.githubusercontent.com/Bencrorules/Liars-Bar/main/Audio/Gunblank.wav" preload="auto"></audio>
+  <audio id="audioFire"  src="https://raw.githubusercontent.com/Bencrorules/Liars-Bar/main/Audio/Gunshot.wav"  preload="auto"></audio>
 
 <script>
-/* =========================================================
-   Simple Russian‑Roulette Logic – v0.1
-   ========================================================= */
-const guns=[
-  // Free placeholder images – swap these for your own royalty‑free revolver photos
-  'https://images.unsplash.com/photo-1519638399535-1b036603ac77?auto=format&fit=crop&w=500&h=500',
-  'https://images.unsplash.com/photo-1603676292143-7396c33dba0c?auto=format&fit=crop&w=500&h=500'
+/* ---------- CONFIG ---------- */
+const GUNS=[
+  {src:'https://raw.githubusercontent.com/Bencrorules/Liars-Bar/main/Images/handgun_1.png',muzzlePct:[.25,.16]},
+  {src:'https://raw.githubusercontent.com/Bencrorules/Liars-Bar/main/Images/handgun_2.png',muzzlePct:[.32,.16]},
+  {src:'https://raw.githubusercontent.com/Bencrorules/Liars-Bar/main/Images/machinegun_1.png',muzzlePct:[.65,.12]},
+  {src:'https://raw.githubusercontent.com/Bencrorules/Liars-Bar/main/Images/rifle_1.png',   muzzlePct:[.65,.16]},
+  {src:'https://raw.githubusercontent.com/Bencrorules/Liars-Bar/main/Images/rifle_2.png',   muzzlePct:[.65,.16]},
+  {src:'https://raw.githubusercontent.com/Bencrorules/Liars-Bar/main/Images/shotgun_1.png', muzzlePct:[.65,.16]},
+  {src:'https://raw.githubusercontent.com/Bencrorules/Liars-Bar/main/Images/shotgun_2.png', muzzlePct:[.55,.12]},
+  {src:'https://raw.githubusercontent.com/Bencrorules/Liars-Bar/main/Images/sniper_1.png',  muzzlePct:[.70,.16]}
 ];
 
-let chambers=[],currentIndex=0;
-const setup=document.getElementById('setup');
-const playArea=document.getElementById('playArea');
+/* ---------- DOM ---------- */
 const gun=document.getElementById('gun');
-const result=document.getElementById('result');
+const smoke=document.getElementById('smoke');
+const ctx=smoke.getContext('2d');
+const flash=document.getElementById('flash');
+const status=document.getElementById('status');
+const setup=document.getElementById('setup');
+const play=document.getElementById('playArea');
+const reload=document.getElementById('reloadBtn');
+const gear=document.getElementById('settingsBtn');
 const audioBlank=document.getElementById('audioBlank');
 const audioFire=document.getElementById('audioFire');
 
-// === Initialise game ===
-function initGame(){
-  const numBullets=parseInt(document.getElementById('bullets').value,10)||1;
-  const numChambers=parseInt(document.getElementById('chambers').value,10)||6;
-  if(numBullets>numChambers){alert('Bullets cannot exceed chambers!');return;}
+/* ---------- GLOBALS ---------- */
+let chambers=[],current=0,total=6;
+let firstGameStarted=false,isSettings=false;
+let lastTap=0,lastShot=0;
+let activeGun={src:'',muzzlePct:[.5,0],loaded:false};
 
-  // Create chamber array & randomly load bullets
-  chambers=Array(numChambers).fill(false);
-  let placed=0;
-  while(placed<numBullets){
-    const idx=Math.floor(Math.random()*numChambers);
-    if(!chambers[idx]){chambers[idx]=true;placed++;}
+/* ---------- PICKERS ---------- */
+function clamp(v,min){return v<min?min:v}
+document.querySelectorAll('.picker').forEach(picker=>{
+  const val=picker.querySelector('.value');
+  picker.addEventListener('click',e=>{
+    if(!e.target.classList.contains('step'))return;
+    let n=parseInt(val.textContent,10);
+    n+=e.target.classList.contains('inc')?1:-1;
+    n=picker.id==='pickBullets'?clamp(n,0):clamp(n,1);
+    val.textContent=n;
+  });
+});
+const bulletsVal =()=>+document.getElementById('bulletsVal').textContent;
+const chambersVal=()=>+document.getElementById('chambersVal').textContent;
+
+/* ---------- POSITION ---------- */
+function updateSmoke(){
+  if(!activeGun.loaded)return;
+  const r=gun.getBoundingClientRect();
+  const cx=r.left+r.width*activeGun.muzzlePct[0];
+  const cy=r.top +r.height*activeGun.muzzlePct[1];
+  smoke.style.left=`${cx-smoke.width/2}px`;
+  smoke.style.top =`${cy-smoke.height/2}px`;
+}
+window.addEventListener('resize',updateSmoke);
+
+/* ---------- PARTICLES ---------- */
+class Particle{
+  constructor(x,y){
+    const a=Math.random()*6.283,s=50+Math.random()*70;
+    this.x=x;this.y=y;
+    this.vx=Math.cos(a)*s;this.vy=Math.sin(a)*s-50;
+    this.t=0;this.life=1;this.sz=10+Math.random()*8;
   }
-  currentIndex=0;
-
-  // Random gun artwork
-  gun.src=guns[Math.floor(Math.random()*guns.length)];
-
-  // Switch screens
-  setup.style.display='none';
-  playArea.style.display='flex';
-  result.textContent='Double‑tap anywhere to fire';
+  upd(dt){this.t+=dt;this.x+=this.vx*dt;this.y+=this.vy*dt;this.vy+=30*dt;}
+  draw(){
+    const p=this.t/this.life,a=Math.max(0,1-p);
+    const c=p<.1?`rgba(255,236,150,${a})`:p<.3?`rgba(235,235,235,${a})`:`rgba(200,200,200,${a})`;
+    ctx.fillStyle=c;
+    const s=this.sz*(1+.3*(1-p));
+    ctx.beginPath();ctx.ellipse(this.x,this.y,s,s*.8,0,0,6.283);ctx.fill();
+  }
+}
+let parts=[];
+function burst(){
+  parts=[];smoke.style.display='block';
+  for(let i=0;i<60;i++)parts.push(new Particle(smoke.width/2,smoke.height/2));
+  let last=performance.now();
+  (function anim(now){
+    const dt=(now-last)/1e3;last=now;
+    ctx.clearRect(0,0,smoke.width,smoke.height);
+    parts.forEach(p=>p.upd(dt));parts.forEach(p=>p.draw());
+    parts=parts.filter(p=>p.t<p.life);
+    parts.length?requestAnimationFrame(anim):smoke.style.display='none';
+  })(last);
 }
 
-document.getElementById('startBtn').addEventListener('click',initGame);
+/* ---------- FX ---------- */
+const shake =()=>{play.classList.add('shake');setTimeout(()=>play.classList.remove('shake'),300)};
+const recoil=()=>{gun.classList.add('recoil');setTimeout(()=>gun.classList.remove('recoil'),200)};
+const flashRed=()=>{flash.style.opacity='1';setTimeout(()=>flash.style.opacity='0',150)};
 
-// === Tap / Click detection (desktop & mobile) ===
-let lastTap=0;
-function tapHandler(){
-  const now=Date.now();
-  if(now-lastTap<350){ fireRound(); }
-  lastTap=now;
-}
-
-document.addEventListener('click',tapHandler);
-document.addEventListener('touchend',tapHandler);
-
-// === Fire current chamber ===
-function fireRound(){
-  if(!playArea.style.display||playArea.style.display==='none') return; // not started yet
-  if(currentIndex>=chambers.length){ result.textContent='💀 Out of chambers!'; return; }
-
-  const live=chambers[currentIndex];
-  if(live){
-    audioFire.currentTime=0; audioFire.play();
-    result.textContent='🔫 BANG!';
-    gun.classList.add('smoke');
-    // Stop game after fatal shot
-    document.removeEventListener('click',tapHandler);
-    document.removeEventListener('touchend',tapHandler);
+/* ---------- GAME ---------- */
+function updateStatus(){status.textContent=`(${current+1} / ${total})`}
+function fire(){
+  if(current>=chambers.length)return;
+  if(chambers[current]){
+    audioFire.currentTime=0;audioFire.play();
+    updateSmoke();burst();shake();recoil();flashRed();
+    disableTap();reload.style.display='inline-block';
   }else{
-    audioBlank.currentTime=0; audioBlank.play();
-    result.textContent='☠️ Click…';
-    currentIndex++;
+    audioBlank.currentTime=0;audioBlank.play();
+    current++;updateStatus();
   }
 }
+function startGame(){
+  if(!firstGameStarted){gear.style.display='inline';firstGameStarted=true;}
+
+  const bullets=bulletsVal(),newTotal=chambersVal();
+  if(bullets>newTotal)return alert('Bullets exceed chambers');
+  total=newTotal;
+
+  chambers=Array(total).fill(false);
+  for(let placed=0;placed<bullets;){
+    const i=Math.random()*total|0;
+    if(!chambers[i]){chambers[i]=true;placed++;}
+  }
+  current=0;
+
+  if(!activeGun.src){
+    activeGun={...GUNS[Math.random()*GUNS.length|0],loaded:false};
+    gun.onload=()=>{activeGun.loaded=true;updateSmoke();};
+    gun.src=activeGun.src;
+  }else{updateSmoke();}
+
+  setup.style.display='none';
+  play.style.display='block';
+  reload.style.display='none';
+  updateStatus();
+  enableTap();
+}
+
+/* ---------- INPUT ---------- */
+function onTap(){
+  if(isSettings)return;
+  const n=Date.now();
+  if(n-lastShot<1000)return;
+  if(n-lastTap<350){fire();lastShot=n;lastTap=0;}else lastTap=n;
+}
+function enableTap(){document.addEventListener('pointerup',onTap)}
+function disableTap(){document.removeEventListener('pointerup',onTap)}
+
+/* ---------- SETTINGS TOGGLE ---------- */
+gear.addEventListener('click',()=>{
+  isSettings=!isSettings;
+  setup.style.display=isSettings?'flex':'none';
+  play.style.display =isSettings?'none':'block';
+  isSettings?disableTap():enableTap();
+});
+
+/* ---------- INIT ---------- */
+document.getElementById('startBtn').addEventListener('click',startGame);
+reload.addEventListener('click',startGame);
 </script>
 </body>
 </html>
