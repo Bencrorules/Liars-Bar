@@ -122,7 +122,23 @@ h1{
   80%{transform:translate(2px,-2px)}
 }
 .shake{animation:shake .3s both}
-#flash{position:fixed;inset:0;background:rgba(180,0,40,.4);pointer-events:none;opacity:0;transition:opacity .25s;z-index:6}
+#flash{
+  position:fixed;
+  inset:0;background:rgba(180,0,40,.4);
+  pointer-events:none;
+  opacity:0;
+  transition:opacity .25s;z-index:6
+}
+
+#flashSafe {
+  position: fixed;
+  inset: 0;
+  background: rgba(80, 255, 120, 0.25); /* soft green */
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .25s;
+  z-index: 5;
+}
 
 #reloadBtn{position:absolute;bottom:2rem;left:50%;transform:translateX(-50%);display:none}
 </style>
@@ -263,18 +279,24 @@ function burst(){
 const shake =()=>{play.classList.add('shake');setTimeout(()=>play.classList.remove('shake'),300)};
 const recoil=()=>{gun.classList.add('recoil');setTimeout(()=>gun.classList.remove('recoil'),200)};
 const flashRed=()=>{flash.style.opacity='1';setTimeout(()=>flash.style.opacity='0',150)};
+const flashGreen = () => {const safe = document.getElementById('flashSafe');safe.style.opacity = '1';setTimeout(() => (safe.style.opacity = '0'), 150)};
 
 /* ---------- GAME ---------- */
 function updateStatus(){status.textContent=`(${current}|${total})`}
 function fire(){
   if(current>=chambers.length)return;
   if(chambers[current]){
-    audioFire.currentTime=0;audioFire.play();
+    audioFire.currentTime=0;
+    audioFire.play();
     updateSmoke();burst();shake();recoil();flashRed();
-    disableTap();reload.style.display='inline-block';
+    disableTap();
+    reload.style.display='inline-block';
   }else{
-    audioBlank.currentTime=0;audioBlank.play();
-    current++;updateStatus();
+    audioBlank.currentTime=0;
+    audioBlank.play();
+    flashGreen();
+    current++;
+    updateStatus();
   }
 }
 function startGame(){
