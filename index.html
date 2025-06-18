@@ -42,8 +42,6 @@ button{
 }
 button:hover{background:var(--violet-500);box-shadow:0 0 12px var(--violet-500)}
 button:active{transform:translateY(2px)}
-
-/* steppers */
 .step{width:2.6rem;height:2.6rem;font-size:1.6rem;line-height:1;padding:0}
 .value{min-width:2.6rem;text-align:center}
 
@@ -54,7 +52,7 @@ button:active{transform:translateY(2px)}
   align-items:center;
 }
 #setup{
-  justify-content:space-between;          /* top vs bottom */
+  justify-content:space-between;
   padding:2.5rem 2rem;
   background:#000;
   border:2px solid var(--violet-700);
@@ -63,23 +61,18 @@ button:active{transform:translateY(2px)}
   z-index:5;
 }
 #setupTop{width:100%;display:flex;flex-direction:column;gap:2rem}
-
-/* title */
 h1{
   font-size:2.5rem;
   text-align:center;
   letter-spacing:.06em;
   text-shadow:0 0 10px var(--violet-500),0 0 24px var(--violet-500);
-  white-space: nowrap;
+  white-space:nowrap;
 }
-
-/* picker rows */
 .picker{
   display:flex;
   justify-content:space-between;
   align-items:center;
-  gap:1rem;
-  width:100%;
+  gap:1rem;width:100%;
 }
 .picker span:first-child{flex:1;text-align:left}
 
@@ -89,12 +82,10 @@ h1{
   font-size:2rem;line-height:1;
   background:none;border:none;color:#fff;
   padding:0;margin:0;
-  display:none;                  /* shown after first game */
+  display:none;              /* shown after first game */
   z-index:10;pointer-events:auto;
-  box-shadow: none;
 }
-#settingsBtn:hover{color:#fff}    /* no purple glow */
-
+#settingsBtn:hover{color:#fff}
 #status{
   position:absolute;top:1rem;left:50%;
   transform:translateX(-50%);
@@ -122,31 +113,25 @@ h1{
   80%{transform:translate(2px,-2px)}
 }
 .shake{animation:shake .3s both}
-#flash{
-  position:fixed;
-  inset:0;background:rgba(180,0,40,.4);
+#flashBad ,#flashGood{
+  position:fixed;inset:0;
   pointer-events:none;
-  opacity:0;
-  transition:opacity .25s;z-index:6
+  opacity:0;transition:opacity .25s;
+  z-index:6;
 }
-
-#flashSafe {
-  position: fixed;
-  inset: 0;
-  background: rgba(80, 255, 120, 0.25); /* soft green */
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity .25s;
-  z-index: 5;
-}
+#flashBad {background:rgba(180,0,40,.4)}
+#flashGood{background:rgba(0,180,60,.35)}
 
 #reloadBtn{position:absolute;bottom:2rem;left:50%;transform:translateX(-50%);display:none}
 </style>
 </head>
 
 <body>
-  <!-- Flash & Gear -->
-  <div id="flash"></div>
+  <!-- Danger & Safe flashes -->
+  <div id="flashBad"></div>
+  <div id="flashGood"></div>
+
+  <!-- Gear & chamber status -->
   <button id="settingsBtn" title="Settings">⚙️</button>
   <div id="status"></div>
 
@@ -200,17 +185,18 @@ const GUNS=[
 ];
 
 /* ---------- DOM ---------- */
-const gun=document.getElementById('gun');
-const smoke=document.getElementById('smoke');
-const ctx=smoke.getContext('2d');
-const flash=document.getElementById('flash');
-const status=document.getElementById('status');
-const setup=document.getElementById('setup');
-const play=document.getElementById('playArea');
-const reload=document.getElementById('reloadBtn');
-const gear=document.getElementById('settingsBtn');
-const audioBlank=document.getElementById('audioBlank');
-const audioFire=document.getElementById('audioFire');
+const gun       = document.getElementById('gun');
+const smoke     = document.getElementById('smoke');
+const ctx       = smoke.getContext('2d');
+const flashBad  = document.getElementById('flashBad');
+const flashGood = document.getElementById('flashGood');
+const status    = document.getElementById('status');
+const setup     = document.getElementById('setup');
+const play      = document.getElementById('playArea');
+const reload    = document.getElementById('reloadBtn');
+const gear      = document.getElementById('settingsBtn');
+const audioBlank= document.getElementById('audioBlank');
+const audioFire = document.getElementById('audioFire');
 
 /* ---------- GLOBALS ---------- */
 let chambers=[],current=0,total=6;
@@ -237,7 +223,7 @@ const chambersVal=()=>+document.getElementById('chambersVal').textContent;
 function updateSmoke(){
   if(!activeGun.loaded)return;
   const r=gun.getBoundingClientRect();
-  const cx=r.left+r.width*activeGun.muzzlePct[0];
+  const cx=r.left+r.width *activeGun.muzzlePct[0];
   const cy=r.top +r.height*activeGun.muzzlePct[1];
   smoke.style.left=`${cx-smoke.width/2}px`;
   smoke.style.top =`${cy-smoke.height/2}px`;
@@ -252,7 +238,7 @@ class Particle{
     this.vx=Math.cos(a)*s;this.vy=Math.sin(a)*s-50;
     this.t=0;this.life=1;this.sz=10+Math.random()*8;
   }
-  upd(dt){this.t+=dt;this.x+=this.vx*dt;this.y+=this.vy*dt;this.vy+=30*dt;}
+  upd(dt){this.t+=dt;this.x+=this.vx*dt;this.y+=this.vy*dt;this.vy+=30*dt}
   draw(){
     const p=this.t/this.life,a=Math.max(0,1-p);
     const c=p<.1?`rgba(255,236,150,${a})`:p<.3?`rgba(235,235,235,${a})`:`rgba(200,200,200,${a})`;
@@ -276,29 +262,27 @@ function burst(){
 }
 
 /* ---------- FX ---------- */
-const shake =()=>{play.classList.add('shake');setTimeout(()=>play.classList.remove('shake'),300)};
-const recoil=()=>{gun.classList.add('recoil');setTimeout(()=>gun.classList.remove('recoil'),200)};
-const flashRed=()=>{flash.style.opacity='1';setTimeout(()=>flash.style.opacity='0',150)};
-const flashGreen = () => {const safe = document.getElementById('flashSafe');safe.style.opacity = '1';setTimeout(() => (safe.style.opacity = '0'), 150)};
+const shake    =()=>{play.classList.add('shake');setTimeout(()=>play.classList.remove('shake'),300)};
+const recoil   =()=>{gun.classList.add('recoil');setTimeout(()=>gun.classList.remove('recoil'),200)};
+const flashRed =()=>{flashBad .style.opacity='1';setTimeout(()=>flashBad .style.opacity='0',150)};
+const flashGreen=()=>{flashGood.style.opacity='1';setTimeout(()=>flashGood.style.opacity='0',150)};
 
 /* ---------- GAME ---------- */
-function updateStatus(){status.textContent=`(${current}|${total})`}
+function updateStatus(){status.textContent=`(${current+1} / ${total})`}
 function fire(){
   if(current>=chambers.length)return;
-  if(chambers[current]){
-    audioFire.currentTime=0;
-    audioFire.play();
+
+  if(chambers[current]){                /* 🔴 live round */
+    audioFire.currentTime=0;audioFire.play();
     updateSmoke();burst();shake();recoil();flashRed();
-    disableTap();
-    reload.style.display='inline-block';
-  }else{
-    audioBlank.currentTime=0;
-    audioBlank.play();
+    disableTap();reload.style.display='inline-block';
+  }else{                                /* 🟢 safe */
+    audioBlank.currentTime=0;audioBlank.play();
     flashGreen();
-    current++;
-    updateStatus();
+    current++;updateStatus();
   }
 }
+
 function startGame(){
   if(!firstGameStarted){gear.style.display='inline';firstGameStarted=true;}
 
@@ -317,10 +301,10 @@ function startGame(){
     activeGun={...GUNS[Math.random()*GUNS.length|0],loaded:false};
     gun.onload=()=>{activeGun.loaded=true;updateSmoke();};
     gun.src=activeGun.src;
-  }else{updateSmoke();}
+  }else updateSmoke();
 
   setup.style.display='none';
-  play.style.display='block';
+  play .style.display='block';
   reload.style.display='none';
   updateStatus();
   enableTap();
@@ -333,14 +317,14 @@ function onTap(){
   if(n-lastShot<1000)return;
   if(n-lastTap<350){fire();lastShot=n;lastTap=0;}else lastTap=n;
 }
-function enableTap(){document.addEventListener('pointerup',onTap)}
+function enableTap (){document.addEventListener('pointerup',onTap)}
 function disableTap(){document.removeEventListener('pointerup',onTap)}
 
 /* ---------- SETTINGS TOGGLE ---------- */
 gear.addEventListener('click',()=>{
   isSettings=!isSettings;
   setup.style.display=isSettings?'flex':'none';
-  play.style.display =isSettings?'none':'block';
+  play .style.display=isSettings?'none':'block';
   isSettings?disableTap():enableTap();
 });
 
