@@ -264,7 +264,7 @@ const recoil=()=>{gun.classList.add('recoil');setTimeout(()=>gun.classList.remov
 const flashRed=()=>{flash.style.opacity='1';setTimeout(()=>flash.style.opacity='0',150)};
 
 /* ---------- GAME ---------- */
-function updateStatus(){status.textContent=`(${current+1} / ${total})`}
+function updateStatus(){status.textContent=`(${current}|${total})`}
 function fire(){
   if(current>=chambers.length)return;
   if(chambers[current]){
