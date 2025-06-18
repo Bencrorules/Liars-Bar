@@ -84,6 +84,8 @@ h1{
   padding:0;margin:0;
   display:none;              /* shown after first game */
   z-index:10;pointer-events:auto;
+  box-shadow: none;
+  
 }
 #settingsBtn:hover{color:#fff}
 #status{
@@ -268,7 +270,7 @@ const flashRed =()=>{flashBad .style.opacity='1';setTimeout(()=>flashBad .style.
 const flashGreen=()=>{flashGood.style.opacity='1';setTimeout(()=>flashGood.style.opacity='0',150)};
 
 /* ---------- GAME ---------- */
-function updateStatus(){status.textContent=`(${current+1} / ${total})`}
+function updateStatus(){status.textContent=`(${current} | ${total})`}
 function fire(){
   if(current>=chambers.length)return;
 
@@ -314,7 +316,7 @@ function startGame(){
 function onTap(){
   if(isSettings)return;
   const n=Date.now();
-  if(n-lastShot<1000)return;
+  if(n-lastShot<500)return;
   if(n-lastTap<350){fire();lastShot=n;lastTap=0;}else lastTap=n;
 }
 function enableTap (){document.addEventListener('pointerup',onTap)}
